@@ -24,22 +24,21 @@ def step_model(device, model, loader, optimizer=None, scheduler=None, train=Fals
 
     criterion_func = nn.MSELoss(reduction='none')
     losses = []
-    for data, surf_pc in loader:
+    for data in loader:
         with torch.set_grad_enabled(train):
-            data = data.to(device)
-            surf_pc = surf_pc.to(device)
             if train and optimizer is not None:
                 optimizer.zero_grad()
-            out = model((data, surf_pc))
 
+            data = data.to(device)
+            out = model(data)
+            targets = data.y
             loss = criterion_func(
                     out[data.surf, 0], 
-                    data.y[data.surf, 0]
+                    targets[data.surf, 0]
             ).mean(dim=0)
             
             if train and None not in (optimizer, scheduler):
                 loss.backward()
-
                 optimizer.step()
                 scheduler.step()
 

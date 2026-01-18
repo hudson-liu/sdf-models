@@ -122,7 +122,7 @@ class Transolver_block(nn.Module):
             return fx
 
 
-class Model(nn.Module):
+class Transolver(nn.Module):
     def __init__(self,
                  space_dim=1,
                  n_layers=5,
@@ -137,7 +137,7 @@ class Model(nn.Module):
                  ref=8,
                  unified_pos=False
                  ):
-        super(Model, self).__init__()
+        super(Transolver, self).__init__()
         self.__name__ = 'UniPDE_3D'
         self.ref = ref
         self.unified_pos = unified_pos
@@ -192,19 +192,14 @@ class Model(nn.Module):
         return pos
 
     def forward(self, data):
-        cfd_data, geom_data = data
-        x, fx, T = cfd_data.x, None, None
+        x = data.x
         x = x[None, :, :]
         if self.unified_pos:
-            new_pos = self.get_grid(cfd_data.pos[None, :, :])
+            new_pos = self.get_grid(data.pos[None, :, :])
             x = torch.cat((x, new_pos), dim=-1)
 
-        if fx is not None:
-            fx = torch.cat((x, fx), -1)
-            fx = self.preprocess(fx)
-        else:
-            fx = self.preprocess(x)
-            fx = fx + self.placeholder[None, None, :]
+        fx = self.preprocess(x)
+        fx = fx + self.placeholder[None, None, :]
 
         for block in self.blocks:
             fx = block(fx)
