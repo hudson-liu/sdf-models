@@ -29,11 +29,18 @@ val_dl = DataLoader(val_data, batch_size=1, shuffle=False)
 
 match args.model:
     case "GNOTransolver":
-        model = GNOTransolver()
+        model = GNOTransolver(
+            embedding_channels=128,
+            gno_radius=0.04
+        )
     case "FNOGNO":
-        model = FNOGNO()
+        model = FNOGNO(
+            in_channels=0,
+            out_channels=1
+        )
     case _:
         raise ValueError("Invalid args.model key!!")
+model.to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
 
