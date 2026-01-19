@@ -2,20 +2,28 @@ import numpy as np
 import time, json, os
 import torch
 import torch.nn as nn
-
-from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
+from torch.utils.data import DataLoader
 
-def get_nb_trainable_params(model):
-    '''
-    Return the number of trainable parameters
-    '''
-    model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-    return sum([np.prod(p.size()) for p in model_parameters])
+from tqdm import tqdm
+
+def train_epoch(
+        model: nn.Module, 
+        loader: DataLoader, 
+        device: torch.device,
+        optimizer: torch.optim.Optimizer
+    ):
+    model.train()
+    for (y, x), t in tqdm(loader):
+        y = y.to(device)
+        x = x.to(device)
+        t = t.to(device)
+        
 
 
-def step_model(device, model, loader, optimizer=None, scheduler=None, train=False):
+
+def step_model(model, loader, optimizer=None, scheduler=None, train=False):
     """step model, can be used for train or test"""
     if train:
         model.train()
@@ -45,13 +53,6 @@ def step_model(device, model, loader, optimizer=None, scheduler=None, train=Fals
         losses.append(loss.item())
 
     return np.mean(losses)
-
-class NumpyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)
-
 
 def main(device, train_dataset, val_dataset, Net, hparams, path, reg=1, val_iter=1, coef_norm=[]):
     model = Net.to(device)
@@ -87,19 +88,6 @@ def main(device, train_dataset, val_dataset, Net, hparams, path, reg=1, val_iter
     print('Number of parameters:', params_model)
     print('Time elapsed: {0:.2f} seconds'.format(time_elapsed))
     torch.save(model, path + os.sep + f'model_{hparams["nb_epochs"]}.pth')
-
-    if val_iter is not None:
-        with open(path + os.sep + f'log_{hparams["nb_epochs"]}.json', 'a') as f:
-            json.dump(
-                {
-                    'nb_parameters': params_model,
-                    'time_elapsed': time_elapsed,
-                    'hparams': hparams,
-                    'train_loss': train_loss,
-                    'val_loss': val_loss,
-                    'coef_norm': list(coef_norm),
-                }, f, indent=12, cls=NumpyEncoder
-            )
 
     return model
 

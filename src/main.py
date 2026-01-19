@@ -1,10 +1,17 @@
 import yaml
-import torch
-from config import Config
 from pathlib import Path
 
+import time
+import torch
+from torch.utils.data import DataLoader
+from neuralop.models.fnogno import FNOGNO
+from tqdm import tqdm
+import json
+
+from config import Config
 from dataset import load_train_val_fold
-from models.transolver import Transolver
+from train import train_epoch, val_epoch
+from models.gno_transolver import GNOTransolver
 
 CONFIGPATH = "../main.yaml"
 with open(CONFIGPATH, "r", encoding="utf-8") as f:
@@ -17,17 +24,50 @@ args = Config(**confd)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 train_data, val_data = load_train_val_fold(args)
+train_dl = DataLoader(train_data, batch_size=1, shuffle=False)
+val_dl = DataLoader(val_data, batch_size=1, shuffle=False)
 
-if args.cfd_model == 'Transolver':
-    model = Model(n_hidden=256, n_layers=8, space_dim=7,
-                  fun_dim=0,
-                  n_head=8,
-                  mlp_ratio=2, out_dim=4,
-                  slice_num=32,
-                  unified_pos=0).cuda()
+match args.model:
+    case "GNOTransolver":
+        model = GNOTransolver()
+    case "FNOGNO":
+        model = FNOGNO()
+    case _:
+        raise ValueError("Invalid args.model key!!")
 
-path = f'metrics/{args.cfd_model}/{args.fold_id}/{args.nb_epochs}_{args.weight}'
-if not os.path.exists(path):
-    os.makedirs(path)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
 
-model = train.main(device, train_ds, val_ds, model, path, val_iter=args.val_iter, reg=args.weight)
+# main training loop
+patience = 5 # must have n consecutive epochs with no improvement
+start_time = time.time()
+pbar = tqdm(total=None)
+q = 0
+HARD_LIMIT = 1000 # stops program from running too long
+train_errors = []
+val_errors = []
+while q < HARD_LIMIT:
+    train_epoch(model, train_dl, device, optimizer) 
+
+    pbar.update(1)
+    q += 1
+
+end_time = time.time()
+elapsed = end_time - start_time
+print(f"Finished training, elapsed time {elapsed}")
+
+norm = "_norm" if args.normalize else ""
+savepath = f"../logs/experiment_{args.model}_{args.split}_{args.fold_id}{norm}.json"
+log = {
+    "model": args.model,
+    "split": args.split,
+    "fold_id": args.fold_id,
+    "normalization": args.normalize,
+    "start_time": start_time,
+    "end_time": end_time,
+    "time_to_train": elapsed,
+    "train_errors": train_errors,
+    "val_errors": val_errors
+}
+with open(savepath, "w") as f:
+    json.dump(log, f)
+

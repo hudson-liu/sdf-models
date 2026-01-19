@@ -76,11 +76,11 @@ def get_datalist(args: Config, fold_dirs: dict):
     all_x = [] # all query points
     all_t = [] # all target values (sdf values)
     for idx, samples in fold_dirs.items():
-        norm = "norm" if args.normalize else ""
-        save_path = args.save_dir / f"fold_{idx}_{norm}.npz"
+        norm = "_norm" if args.normalize else ""
+        save_path = args.save_dir / f"fold_{idx}{norm}.npz"
         if args.load_existing_data:
             if not save_path.exists():
-                raise FileNotFoundError(f"Fold {idx} could not be loaded!")
+                raise FileNotFoundError(f"Fold {idx} could not be loaded! :c")
             npzfile = np.load(save_path)
             getfold = lambda x: npzfile[x].tolist()
             fold_y = getfold("fold_y")
@@ -133,6 +133,7 @@ class SDFData(Dataset):
     """basic torch dataset for sdf data"""
 
     def __init__(self, y: Tensor, x: Tensor, t: Tensor):
+        """these tensors live on cpu, not gpu"""
         self.y = y
         self.x = x
         self.t = t
@@ -164,4 +165,4 @@ if __name__ == "__main__":
         fold_id=20,
         split=0.1
     )
-    load_train_val_fold(args)
+    train, val = load_train_val_fold(args)

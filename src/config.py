@@ -12,4 +12,5 @@ class Config:
     num_folds: int
     fold_id: int
     split: float
+    model: str
 
