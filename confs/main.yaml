@@ -1,8 +1,8 @@
 data_dir: /resnick/scratch/hliu9/
 save_dir: /resnick/scratch/hliu9/savedata/
 normalize: true
-generate_new_folds: false # generally keep this as false for reproducibility
-load_existing_data: true
+generate_new_folds: true # generally keep this as false for reproducibility
+load_existing_data: false
 num_folds: 21
 fold_id: 20 # this is the validation fold, choose btwn 0 to 20
 
@@ -10,7 +10,7 @@ model: GNOTransolver
 
 ### proportion of training data pool to use
 ### should be (num_folds - 1) * split is an int
-split: 0.1
+# split: 0.1
 # split: 0.2
 # split: 0.3
 # split: 0.4
@@ -19,3 +19,4 @@ split: 0.1
 # split: 0.7
 # split: 0.8
 # split: 0.9
+split: 1.0

@@ -3,9 +3,11 @@ import pickle
 from pathlib import Path
 
 import open3d as o3d
+import pickle
 import numpy as np
 import pandas as pd
 import torch
+from tqdm import tqdm
 from torch.utils.data import Dataset
 from torch import Tensor
 
@@ -75,28 +77,25 @@ def get_datalist(args: Config, fold_dirs: dict):
     all_y = [] # all mesh points
     all_x = [] # all query points
     all_t = [] # all target values (sdf values)
-    for idx, samples in fold_dirs.items():
+    for idx, samples in tqdm(fold_dirs.items(), desc="Folds"):
         norm = "_norm" if args.normalize else ""
-        save_path = args.save_dir / f"fold_{idx}{norm}.npz"
+        save_path = args.save_dir / f"fold_{idx}{norm}.pkl"
         if args.load_existing_data:
             if not save_path.exists():
                 raise FileNotFoundError(f"Fold {idx} could not be loaded! :c")
-            npzfile = np.load(save_path)
-            getfold = lambda x: npzfile[x].tolist()
-            fold_y = getfold("fold_y")
-            fold_x = getfold("fold_x")
-            fold_t = getfold("fold_t")
+            with open(save_path, "rb") as f:
+                fold_y, fold_x, fold_t = pickle.load(f)
         else:
             fold_y = [] # (nsamples, npoints, 3)
             fold_x = []
             fold_t = []
-            for s in samples:
+            for s in tqdm(samples, desc="Samples", leave=False):
                 meshf = (root / "mesh-4k" / s).with_suffix(".obj")
                 sdff = (root / "sdf-4k-h64" / s).with_suffix(".csv")
                 mesh = load_mesh(meshf)
-                sdfs = pd.read_csv(sdff).to_numpy()
+                sdfs = pd.read_csv(sdff).to_numpy(dtype=np.float32)
 
-                y = np.array(mesh.vertices) # (npoints, 3)
+                y = np.array(mesh.vertices, dtype=np.float32) # (npoints, 3)
                 x = sdfs[:, :3] # (npoints, 3)
                 t = sdfs[:, 3]
 
@@ -113,17 +112,13 @@ def get_datalist(args: Config, fold_dirs: dict):
                 fold_y.append(y)
                 fold_x.append(x)
                 fold_t.append(t)
-
-            np.savez(save_path, fold_y=fold_y, fold_x=fold_x, fold_t=fold_t)
+            
+            with open(save_path, "wb") as f:
+                pickle.dump([fold_y, fold_x, fold_t], f)
 
         all_y += fold_y
         all_x += fold_x
         all_t += fold_t
-
-    totensor = lambda x: torch.tensor(x, dtype=torch.float32)
-    all_y = totensor(all_y)
-    all_x = totensor(all_x)
-    all_t = totensor(all_t)
 
     dataset = SDFData(all_y, all_x, all_t)
 
@@ -132,16 +127,23 @@ def get_datalist(args: Config, fold_dirs: dict):
 class SDFData(Dataset):
     """basic torch dataset for sdf data"""
 
-    def __init__(self, y: Tensor, x: Tensor, t: Tensor):
-        """these tensors live on cpu, not gpu"""
+    def __init__(self, 
+            y: list[np.ndarray], 
+            x: list[np.ndarray], 
+            t: list[np.ndarray]
+        ):
+        # y, x, t does not have to necessarily be regular
+        # (can be different n_points btwn samples)
+        # so we use lists instead of numpy arrays for flexibility
         self.y = y
         self.x = x
         self.t = t
 
     def __getitem__(self, idx):
-        y = self.y[idx]
-        x = self.x[idx]
-        t = self.t[idx]
+        totensor = lambda x: torch.from_numpy(x)
+        y = totensor(self.y[idx])
+        x = totensor(self.x[idx])
+        t = totensor(self.t[idx])
         return (y, x), t
     
     def __len__(self):

@@ -13,7 +13,7 @@ from dataset import load_train_val_fold
 from train import train_epoch, test_epoch
 from models.gno_transolver import GNOTransolver
 
-CONFIGPATH = "../confs/main.yaml"
+CONFIGPATH = "confs/main.yaml"
 with open(CONFIGPATH, "r", encoding="utf-8") as f:
     confd = yaml.safe_load(f)
 cv = lambda x : Path(confd[x]).expanduser()
