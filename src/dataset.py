@@ -1,9 +1,9 @@
 import os
 import pickle
 from pathlib import Path
+import math
 
 import open3d as o3d
-import pickle
 import numpy as np
 import pandas as pd
 import torch
@@ -28,7 +28,7 @@ def get_samples(args: Config):
         sdfs = {i.stem for i in sdff.iterdir()}
         shared = sorted(meshes & sdfs)
 
-        foldsize = len(shared) / args.num_folds + 1
+        foldsize = math.round(len(shared) / args.num_folds) + 1
 
         dirs = {0: []}
         fold = 0
@@ -135,6 +135,8 @@ class SDFData(Dataset):
         # y, x, t does not have to necessarily be regular
         # (can be different n_points btwn samples)
         # so we use lists instead of numpy arrays for flexibility
+        assert len(y) == len(x) == len(t)
+
         self.y = y
         self.x = x
         self.t = t
@@ -147,7 +149,7 @@ class SDFData(Dataset):
         return (y, x), t
     
     def __len__(self):
-        return self.y.size(dim=0)
+        return len(self.y)
 
 # testing
 if __name__ == "__main__":
