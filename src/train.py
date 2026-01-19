@@ -12,7 +12,7 @@ def train_epoch(
         optimizer: torch.optim.Optimizer
     ):
     model.train()
-    criterion_func = nn.MSELoss(reduction="none")
+    criterion_func = nn.MSELoss(reduction="mean")
     losses = []
     for (y, x), t in tqdm(loader):
         y = y.to(device)
@@ -26,7 +26,7 @@ def train_epoch(
         loss.backward()
         optimizer.step()
 
-        losses.append(loss)
+        losses.append(loss.item())
 
     return np.mean(losses)
 
@@ -37,7 +37,7 @@ def test_epoch(
         device: torch.device
     ):
     model.eval()
-    criterion_func = nn.MSELoss(reduction='none')
+    criterion_func = nn.MSELoss(reduction="mean")
     losses = []
     for (y, x), t in tqdm(loader):
         y = y.to(device)
@@ -47,7 +47,7 @@ def test_epoch(
         out = model(y, x)
         loss = criterion_func(out, t)
 
-        losses.append(loss)
+        losses.append(loss.item())
 
     return np.mean(losses)
 

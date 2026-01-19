@@ -6,6 +6,8 @@ load_existing_data: true
 num_folds: 21
 fold_id: 20 # this is the validation fold, choose btwn 0 to 20
 
+model: GNOTransolver
+
 ### proportion of training data pool to use
 ### should be (num_folds - 1) * split is an int
 split: 0.1

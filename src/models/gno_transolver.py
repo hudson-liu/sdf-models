@@ -1,7 +1,7 @@
 import torch.nn as nn
 from neuralop.layers.gno_block import GNOBlock
 
-from transolver import Transolver
+from .transolver import Transolver
 
 class GNOTransolver(nn.Module):
     """specific model for predicting SDFs from mesh geometry"""
@@ -29,7 +29,14 @@ class GNOTransolver(nn.Module):
             slice_num=32,
             unified_pos=False
         )
+
+    class _DataWrapper:
+        """transolver requires a small data wrapper"""
+        def __init__(self, x):
+            self.x = x
+
     def forward(self, y, x):
         embedding = self.gno(y, x)
-        t_pred = self.transolver(embedding)
+        wrapped = self._DataWrapper(embedding)
+        t_pred = self.transolver(wrapped)
         return t_pred

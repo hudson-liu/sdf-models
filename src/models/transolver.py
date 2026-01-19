@@ -1,3 +1,6 @@
+# from the transolver github repo, see:
+# https://github.com/thuml/Transolver/tree/main/Car-Design-ShapeNetCar
+
 import torch
 import numpy as np
 import torch.nn as nn

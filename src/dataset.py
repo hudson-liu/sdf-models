@@ -48,7 +48,7 @@ def trainlst_split(samples, fold_id, split):
     train_s = sorted(train.items(), key=lambda x: x[0])
     splitsize = int(len(train) * split)
     trainlst = train_s[:splitsize]
-    print(f"Using {args.split} of total training data")
+    print(f"Using {split} of total training data")
     return dict(trainlst)
 
 def load_train_val_fold(args: Config):
