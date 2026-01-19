@@ -22,8 +22,7 @@ Our dataset consists of a mesh along with associated SDFs calculated at various 
 **Dataset Loading**: The entire dataset is pre-loaded before training begins. We write our own torch.Dataset obj since the MeshDataModule from NeuralOperators assumes constant query points. Everything is stored on RAM in torch.float32. Our dataset is small enough such that data sharding is unnecessary. GNO takes in y
 
 ## GNO-Transolver
-The main GNO-Transolver model is implemented as a torch module, with inputs of shape 
-The graph neural operator (GNOBlock from neuralop library) is fed, as input, a 2-tuple (y, x) where y is the surface point cloud
+The main GNO-Transolver model is implemented as a torch module. The graph neural operator (GNOBlock from neuralop library) is fed, as input, a 2-tuple (y, x) where y is the surface point cloud. This cannot be batched; as in, the shape of y (and x) should not be "(num_batches, num_points, 3)", but rather "(num_points, 3)". 
 
-# GNO-FNOl
-conversely, if we couple 
+## GNO-FNO
+The FNOGNO is taken straight from the neuraloperator library.
