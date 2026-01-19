@@ -7,11 +7,15 @@ class Config:
     data_dir: Path
     save_dir: Path
     log_dir: Path
+
     normalize: bool
-    generate_new_folds: bool
     load_existing_data: bool
+    use_custom_splits: bool
+
+    model: str
+    
+    generate_new_folds: bool
     num_folds: int
     fold_id: int
     split: float
-    model: str
 

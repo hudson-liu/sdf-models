@@ -10,7 +10,7 @@ from tqdm import tqdm
 import json
 
 from config import Config
-from dataset import load_train_val_fold
+from dataset import load_train_val_fold, load_train_val_custom
 from train import train_epoch, test_epoch
 from models.gno_transolver import GNOTransolver
 
@@ -26,7 +26,10 @@ args = Config(**confd)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # batch size ALWAYS must be 1
-train_data, val_data = load_train_val_fold(args)
+if args.load_existing_data:
+    train_data, val_data = load_train_val_custom(args) 
+else:
+    train_data, val_data = load_train_val_fold(args)
 train_dl = DataLoader(train_data, batch_size=1, shuffle=False)
 val_dl = DataLoader(val_data, batch_size=1, shuffle=False)
 

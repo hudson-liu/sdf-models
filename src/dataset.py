@@ -1,4 +1,3 @@
-import os
 import pickle
 from pathlib import Path
 import math
@@ -9,27 +8,30 @@ import pandas as pd
 import torch
 from tqdm import tqdm
 from torch.utils.data import Dataset
-from torch import Tensor
 
 from config import Config
+
+def get_stems(root):
+    """gets all stems of sdf directories"""
+    meshf = root / "mesh-4k"
+    sdff = root / "sdf-4k-h64"
+    meshes = {i.stem for i in meshf.iterdir()}
+    sdfs = {i.stem for i in sdff.iterdir()}
+    shared = sorted(meshes & sdfs)
+    return shared
 
 def get_samples(args: Config):
     """finds files & generates folds"""
     root = args.data_dir
-    meshf = root / "mesh-4k"
-    sdff = root / "sdf-4k-h64"
+    
     foldpath = root / f"folds_{args.num_folds}.pkl"
 
     if foldpath.exists() and not args.generate_new_folds:
         with open(foldpath, "rb") as f:
             dirs = pickle.load(f)
     else:
-        meshes = {i.stem for i in meshf.iterdir()}
-        sdfs = {i.stem for i in sdff.iterdir()}
-        shared = sorted(meshes & sdfs)
-
+        shared = get_stems(root)
         foldsize = math.ceil(len(shared) / args.num_folds)
-
         dirs = {0: []}
         fold = 0
         for p in shared:
@@ -62,8 +64,25 @@ def load_train_val_fold(args: Config):
     print("Loading data.")
     if args.load_existing_data:
         print("Using preprocessed data...")
-    train_dataset = get_datalist(args, trainlst)
-    val_dataset = get_datalist(args, vallst)
+    train_dataset = get_datalist_folds(args, trainlst)
+    val_dataset = get_datalist_folds(args, vallst)
+    print("Loaded data.")
+    return train_dataset, val_dataset
+
+def load_train_val_custom(args: Config):
+    root = args.data_dir
+    shared = np.array(get_stems(root))
+    split_dir = root / "split-4k"
+    with open(split_dir / "train.txt", "r") as f:
+        spl_t = [int(i) for i in f]
+    with open(split_dir / "test.txt", "r") as f:
+        spl_v = [int(i) for i in f]
+    trainlst = shared[spl_t]
+    vallst = shared[spl_v]
+
+    print("Loading data.")
+    train_dataset = get_datalist_custom(args, trainlst, "train")
+    val_dataset = get_datalist_custom(args, vallst, "test")
     print("Loaded data.")
     return train_dataset, val_dataset
  
@@ -72,7 +91,55 @@ def load_mesh(filename):
     # o3d.visualization.draw_geometries([mesh])
     return mesh
 
-def get_datalist(args: Config, fold_dirs: dict):
+def process_sample(s, args):
+    root = args.data_dir
+    meshf = (root / "mesh-4k" / s).with_suffix(".obj")
+    sdff = (root / "sdf-4k-h64" / s).with_suffix(".csv")
+    mesh = load_mesh(meshf)
+    sdfs = pd.read_csv(sdff).to_numpy(dtype=np.float32)
+    
+    y = np.array(mesh.vertices, dtype=np.float32) # (npoints, 3)
+    x = sdfs[:, :3] # (npoints, 3)
+    t = sdfs[:, 3]
+    
+    # note y and x are on the same coordinate system
+    if args.normalize:
+        bbox_max = y.max(axis=0)
+        bbox_min = y.min(axis=0)
+        norm = (bbox_max - bbox_min) / 2 # normalization factor
+        center = (bbox_max + bbox_min) / 2 # coordinate center
+        y = (y - center) / norm
+        x = (x - center) / norm
+        t /= norm.max()
+
+    return y, x, t
+
+def get_datalist_custom(args: Config, split_files: np.ndarray, save_as: str):
+    root = args.data_dir
+    norm = "_norm" if args.normalize else ""
+    save_path = args.save_dir / f"split_{save_as}{norm}.pkl"
+    if args.load_existing_data:
+        print("Using preprocessed data...")
+        with open(save_path, "rb") as f:
+            all_y, all_x, all_t = pickle.load(f)
+    else:
+        all_y = []
+        all_x = []
+        all_t = []
+        for s in tqdm(split_files, desc="Samples"):
+            y, x, t = process_sample(s, args)
+            all_y.append(y)
+            all_x.append(x)
+            all_t.append(t)
+
+        with open(save_path, "wb") as f:
+             pickle.dump([all_y, all_x, all_t], f)
+
+    dataset = SDFData(all_y, all_x, all_t)
+
+    return dataset
+
+def get_datalist_folds(args: Config, fold_dirs: dict):
     root = args.data_dir
     all_y = [] # all mesh points
     all_x = [] # all query points
@@ -82,7 +149,7 @@ def get_datalist(args: Config, fold_dirs: dict):
         save_path = args.save_dir / f"fold_{idx}{norm}.pkl"
         if args.load_existing_data:
             if not save_path.exists():
-                raise FileNotFoundError(f"Fold {idx} could not be loaded! :c")
+                raise FileNotFoundError(f"Fold {idx} could not be loaded!")
             with open(save_path, "rb") as f:
                 fold_y, fold_x, fold_t = pickle.load(f)
         else:
@@ -90,25 +157,7 @@ def get_datalist(args: Config, fold_dirs: dict):
             fold_x = []
             fold_t = []
             for s in tqdm(samples, desc="Samples", leave=False):
-                meshf = (root / "mesh-4k" / s).with_suffix(".obj")
-                sdff = (root / "sdf-4k-h64" / s).with_suffix(".csv")
-                mesh = load_mesh(meshf)
-                sdfs = pd.read_csv(sdff).to_numpy(dtype=np.float32)
-
-                y = np.array(mesh.vertices, dtype=np.float32) # (npoints, 3)
-                x = sdfs[:, :3] # (npoints, 3)
-                t = sdfs[:, 3]
-
-                # note y and x are on the same coordinate system
-                if args.normalize:
-                    bbox_max = y.max(axis=0)
-                    bbox_min = y.min(axis=0)
-                    norm = (bbox_max - bbox_min) / 2 # normalization factor
-                    center = (bbox_max + bbox_min) / 2 # coordinate center
-                    y = (y - center) / norm
-                    x = (x - center) / norm
-                    t /= norm.max()
-
+                y, x, t = process_sample(s, args) 
                 fold_y.append(y)
                 fold_x.append(x)
                 fold_t.append(t)
