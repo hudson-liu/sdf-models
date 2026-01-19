@@ -6,6 +6,7 @@ class Config:
     """this should be updated along w main.yaml for new entries"""
     data_dir: Path
     save_dir: Path
+    log_dir: Path
     normalize: bool
     generate_new_folds: bool
     load_existing_data: bool

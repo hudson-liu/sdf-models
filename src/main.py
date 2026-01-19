@@ -5,6 +5,7 @@ import time
 import torch
 from torch.utils.data import DataLoader
 from neuralop.models.fnogno import FNOGNO
+import torch.nn as nn
 from tqdm import tqdm
 import json
 
@@ -19,10 +20,12 @@ with open(CONFIGPATH, "r", encoding="utf-8") as f:
 cv = lambda x : Path(confd[x]).expanduser()
 confd["data_dir"] = cv("data_dir")
 confd["save_dir"] = cv("save_dir")
+confd["log_dir"] = cv("log_dir")
 args = Config(**confd)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# batch size ALWAYS must be 1
 train_data, val_data = load_train_val_fold(args)
 train_dl = DataLoader(train_data, batch_size=1, shuffle=False)
 val_dl = DataLoader(val_data, batch_size=1, shuffle=False)
@@ -43,6 +46,7 @@ match args.model:
 model.to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
+loss_fn = nn.MSELoss(reduction="mean")
 
 # main training loop
 HARD_LIMIT = 1000 # stops program from running too long
@@ -57,13 +61,14 @@ best_loss = float("inf")
 q = 0
 c = 0 # counter of num of consecutive epochs where val loss is increasing
 while q < HARD_LIMIT:
-    train_loss = train_epoch(model, train_dl, device, optimizer)
+    train_loss = train_epoch(model, train_dl, device, optimizer, loss_fn)
+    loss_t.append(train_loss)
     
     pbar.update(1)
     q += 1
 
     if q % VAL_FREQ == 0:
-        val_loss = test_epoch(model, val_dl, device)
+        val_loss = test_epoch(model, val_dl, device, loss_fn)
         loss_v.append(val_loss)
         if val_loss < best_loss:
             best_loss = val_loss
@@ -78,7 +83,7 @@ elapsed = end_time - start_time
 print(f"Finished training, elapsed time {elapsed}")
 
 norm = "_norm" if args.normalize else ""
-savepath = f"../logs/experiment_{args.model}_{args.split}_{args.fold_id}{norm}.json"
+savepath = f"{args.log_dir}/experiment_{args.model}_{args.split}_{args.fold_id}{norm}.json"
 log = {
     "model": args.model,
     "split": args.split,

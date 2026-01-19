@@ -28,7 +28,7 @@ def get_samples(args: Config):
         sdfs = {i.stem for i in sdff.iterdir()}
         shared = sorted(meshes & sdfs)
 
-        foldsize = math.round(len(shared) / args.num_folds) + 1
+        foldsize = math.ceil(len(shared) / args.num_folds)
 
         dirs = {0: []}
         fold = 0
@@ -145,7 +145,7 @@ class SDFData(Dataset):
         totensor = lambda x: torch.from_numpy(x)
         y = totensor(self.y[idx])
         x = totensor(self.x[idx])
-        t = totensor(self.t[idx])
+        t = totensor(self.t[idx]).unsqueeze(dim=1)
         return (y, x), t
     
     def __len__(self):

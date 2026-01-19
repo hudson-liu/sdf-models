@@ -1,5 +1,6 @@
 data_dir: /resnick/scratch/hliu9/
 save_dir: /resnick/scratch/hliu9/savedata/
+log_dir: /resnick/scratch/hliu9/logs/
 normalize: true
 generate_new_folds: false # generally keep this as false for reproducibility
 load_existing_data: true
