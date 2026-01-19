@@ -163,6 +163,7 @@ if __name__ == "__main__":
         load_existing_data=True,
         num_folds=21,
         fold_id=20,
-        split=0.1
+        split=0.1,
+        model="GNOTransolver"
     )
     train, val = load_train_val_fold(args)

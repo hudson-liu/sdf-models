@@ -10,7 +10,7 @@ import json
 
 from config import Config
 from dataset import load_train_val_fold
-from train import train_epoch, val_epoch
+from train import train_epoch, test_epoch
 from models.gno_transolver import GNOTransolver
 
 CONFIGPATH = "../main.yaml"
@@ -43,10 +43,14 @@ start_time = time.time()
 pbar = tqdm(total=None)
 q = 0
 HARD_LIMIT = 1000 # stops program from running too long
-train_errors = []
-val_errors = []
+VAL_FREQ = 5 # validation step occurs every 5 training epochs
+loss_t = []
+loss_v = []
 while q < HARD_LIMIT:
-    train_epoch(model, train_dl, device, optimizer) 
+    train_loss = train_epoch(model, train_dl, device, optimizer)
+
+    if q % VAL_FREQ == 0:
+        val_loss = test_epoch(model, val_dl, device)
 
     pbar.update(1)
     q += 1
@@ -65,8 +69,8 @@ log = {
     "start_time": start_time,
     "end_time": end_time,
     "time_to_train": elapsed,
-    "train_errors": train_errors,
-    "val_errors": val_errors
+    "train_errors": loss_t,
+    "val_errors": loss_v
 }
 with open(savepath, "w") as f:
     json.dump(log, f)
