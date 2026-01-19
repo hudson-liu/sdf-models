@@ -38,22 +38,33 @@ match args.model:
 optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
 
 # main training loop
+HARD_LIMIT = 1000 # stops program from running too long
+VAL_FREQ = 3 # validation step occurs every 3 training epochs
 patience = 5 # must have n consecutive epochs with no improvement
+
 start_time = time.time()
 pbar = tqdm(total=None)
-q = 0
-HARD_LIMIT = 1000 # stops program from running too long
-VAL_FREQ = 5 # validation step occurs every 5 training epochs
 loss_t = []
 loss_v = []
+best_loss = float("inf")
+q = 0
+c = 0 # counter of num of consecutive epochs where val loss is increasing
 while q < HARD_LIMIT:
     train_loss = train_epoch(model, train_dl, device, optimizer)
+    
+    pbar.update(1)
+    q += 1
 
     if q % VAL_FREQ == 0:
         val_loss = test_epoch(model, val_dl, device)
-
-    pbar.update(1)
-    q += 1
+        loss_v.append(val_loss)
+        if val_loss < best_loss:
+            best_loss = val_loss
+            c = 0
+        else:
+            c += 1
+        if c == patience:
+            break
 
 end_time = time.time()
 elapsed = end_time - start_time
