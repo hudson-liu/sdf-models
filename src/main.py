@@ -26,7 +26,7 @@ args = Config(**confd)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # batch size ALWAYS must be 1
-if args.load_existing_data:
+if args.use_custom_splits:
     train_data, val_data = load_train_val_custom(args) 
 else:
     train_data, val_data = load_train_val_fold(args)
@@ -86,18 +86,34 @@ elapsed = end_time - start_time
 print(f"Finished training, elapsed time {elapsed}")
 
 norm = "_norm" if args.normalize else ""
-savepath = f"{args.log_dir}/experiment_{args.model}_{args.split}_{args.fold_id}{norm}.json"
-log = {
-    "model": args.model,
-    "split": args.split,
-    "fold_id": args.fold_id,
-    "normalization": args.normalize,
-    "start_time": start_time,
-    "end_time": end_time,
-    "time_to_train": elapsed,
-    "train_errors": loss_t,
-    "val_errors": loss_v
-}
+if args.use_custom_splits:
+    train_size = len(train_data)
+    test_size = len(val_data)
+    savepath = f"{args.log_dir}/experiment_custom_{args.model}_{train_size}_{test_size}{norm}.json"
+    log = {
+        "model": args.model,
+        "train_size": train_size,
+        "test_size": test_size,
+        "normalization": args.normalize,
+        "start_time": start_time,
+        "end_time": end_time,
+        "time_to_train": elapsed,
+        "train_errors": loss_t,
+        "val_errors": loss_v
+    }
+else:
+    savepath = f"{args.log_dir}/experiment_folds_{args.model}_{args.split}_{args.fold_id}{norm}.json"
+    log = {
+        "model": args.model,
+        "split": args.split,
+        "fold_id": args.fold_id,
+        "normalization": args.normalize,
+        "start_time": start_time,
+        "end_time": end_time,
+        "time_to_train": elapsed,
+        "train_errors": loss_t,
+        "val_errors": loss_v
+    }
 with open(savepath, "w") as f:
     json.dump(log, f)
 
