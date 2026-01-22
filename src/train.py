@@ -10,8 +10,12 @@ def train_epoch(
         loader: DataLoader, 
         device: torch.device,
         optimizer: torch.optim.Optimizer,
-        loss_fn: nn.Module
+        loss_fn: nn.Module,
+        use_amp: bool
     ):
+
+    scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
+
     model.train()
     losses = []
     for (y, x), t in tqdm(loader):
@@ -22,9 +26,10 @@ def train_epoch(
         
         optimizer.zero_grad()
 
-        out = model(y, x)
-        loss = loss_fn(out, t)
-        loss.backward()
+        with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=use_amp):
+            out = model(y, x)
+            loss = loss_fn(out, t)
+        scaler.scale(loss).backward()
         optimizer.step()
 
         losses.append(loss.item())

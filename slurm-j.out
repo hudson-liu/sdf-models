@@ -1,0 +1,10 @@
+Job ID: 59364822
+Job Name: sdf-models-training-test
+Node: hpc-33-16
+Partition: 
+Number of nodes: 1
+Number of tasks: 1
+CPUs per task: 1
+Memory per CPU: 80
+Time limit: 
+Job completed successfully!

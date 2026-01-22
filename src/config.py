@@ -11,6 +11,7 @@ class Config:
     normalize: bool
     load_existing_data: bool
     use_custom_splits: bool
+    use_amp: bool
 
     model: str
     

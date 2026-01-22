@@ -16,17 +16,18 @@ class GNOTransolver(nn.Module):
             in_channels=0, # we are not using f_y, so this is unused
             out_channels=embedding_channels,
             coord_dim=3,
+
             radius=gno_radius
         ) 
         self.transolver = Transolver(
             space_dim=embedding_channels,
             fun_dim=0, # only spatial dims; we are not passing any function vals
             out_dim=1, # single prediction: sdf values
-            n_hidden=256, 
-            n_layers=8, 
-            n_head=8,
+            n_hidden=16, 
+            n_layers=2, 
+            n_head=4,
             mlp_ratio=2,
-            slice_num=32,
+            slice_num=4,
             unified_pos=False
         )
 

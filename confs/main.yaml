@@ -5,6 +5,7 @@ log_dir: /resnick/scratch/hliu9/logs/
 normalize: true
 use_custom_splits: true
 load_existing_data: true
+use_amp: true
 
 model: GNOTransolver
 

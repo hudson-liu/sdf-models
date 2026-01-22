@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=80
-#SBATCH --time=01-00:00:00
+#SBATCH --time=00-00:10:00
 #SBATCH --output=slurm-j.out
 #SBATCH --error=slurm-j.err
 #SBATCH --mail-user=hliu9@caltech.edu

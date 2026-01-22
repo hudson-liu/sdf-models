@@ -36,8 +36,8 @@ val_dl = DataLoader(val_data, batch_size=1, shuffle=False)
 match args.model:
     case "GNOTransolver":
         model = GNOTransolver(
-            embedding_channels=128,
-            gno_radius=0.04
+            embedding_channels=4,
+            gno_radius=0.015
         )
     case "FNOGNO":
         model = FNOGNO(
@@ -64,7 +64,7 @@ best_loss = float("inf")
 q = 0
 c = 0 # counter of num of consecutive epochs where val loss is increasing
 while q < HARD_LIMIT:
-    train_loss = train_epoch(model, train_dl, device, optimizer, loss_fn)
+    train_loss = train_epoch(model, train_dl, device, optimizer, loss_fn, args.use_amp)
     loss_t.append(train_loss)
     
     pbar.update(1)
