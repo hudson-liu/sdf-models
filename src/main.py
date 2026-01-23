@@ -36,8 +36,8 @@ val_dl = DataLoader(val_data, batch_size=1, shuffle=False)
 match args.model:
     case "GNOTransolver":
         model = GNOTransolver(
-            embedding_channels=4,
-            gno_radius=0.015
+            embedding_channels=64,
+            gno_radius=0.033
         )
     case "FNOGNO":
         model = FNOGNO(
